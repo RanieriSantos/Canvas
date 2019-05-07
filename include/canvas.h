@@ -1,13 +1,13 @@
 #ifndef CANVAS_H
 #define CANVAS_H
 
-#include <vector>
-using std::vector;
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
-
+#include <vector>
 #include "common.h"
+
+using std::vector;
 
 namespace life {
 
@@ -28,97 +28,133 @@ namespace life {
  * This class returns to the client an image (object) representation of the
  * maze, which might be recorded by the client as a PNG image file.
  */
-	class Canvas {
-	public:
-		//=== Alias
-		typedef unsigned char component_t;  //!< Type of a color channel.
-		static constexpr int image_depth =
-		4;  //!< Default value is RGBA (4 channels).
+class Canvas {
+       public:
+        //=== Alias
+        typedef unsigned char component_t;     //!< Type of a color channel.
+        static constexpr int image_depth = 4;  //!< Default value is RGBA (4 channels).
 
-	public:
-		//=== Special members
-		/// Constructor
-		/*! Creates an empty canvas of the requested size.
-		* @param w_ The canvas width in pixels.
-		* @param h_ The canvas height in pixels.
-		*/
-		Canvas(size_t w = 0, size_t h = 0, short bs = 4)
-		: m_width{w * bs}, m_height{h * bs}, m_block_size{bs} {
-			// Remember to adjust the virtual size to real dimensions.
-			m_pixels.resize(m_width * m_height * image_depth);
-		}
+       public:
+        //=== Special members
+        /// Constructor
+        /*! Creates an empty canvas of the requested size.
+         * @param w_ The canvas width in pixels.
+         * @param h_ The canvas height in pixels.
+         */
+        Canvas(size_t w = 0, size_t h = 0, short bs = 4) : m_width{w * bs}, m_height{h * bs}, m_block_size{bs} {
+                // Remember to adjust the virtual size to real dimensions.
+                m_pixels.resize(m_width * m_height * image_depth);
+                m_pixels.assign(m_width * m_height * image_depth, 255);
+        }
 
-		/// Destructor.
-		virtual ~Canvas(void) {
-			// Do nothing, RAII (resource acquisition is resource
-			// initialization) approach
-		}
+        /// Destructor.
+        virtual ~Canvas(void) {
+                // Do nothing, RAII (resource acquisition is resource
+                // initialization) approach
+        }
 
-		//=== Special members
-		/// Copy constructor.
-		Canvas(const Canvas&);
-		/// Assignment operator.
-		Canvas& operator=(const Canvas&);
-		/// Move constructor.
-		Canvas(Canvas&& clone);
-		/// Move assignment operator.
-		Canvas& operator=(Canvas&&);
+        //=== Special members
+        /// Copy constructor.
+        Canvas(const Canvas&);
+        /// Assignment operator.
+        Canvas& operator=(const Canvas&);
+        /// Move constructor.
+        Canvas(Canvas&& clone);
+        /// Move assignment operator.
+        Canvas& operator=(Canvas&&);
 
-		//=== Members
-		/// Clear the canvas with black color.
-		void clear(void);
-		/// Set the color of a pixel on the canvas.
-		void pixel(const Point2&, const Color&);
-		/// Get the pixel color from the canvas.
-		Color pixel(const Point2&) const;
+        //=== Members
+        /// Clear the canvas with black color.
+        void clear(void);  // #TODO
 
-		//=== Attribute accessors members.
-		/// Get the canvas width.
-		size_t width(void) const { return m_width; }
-		/// Get the canvas height.
-		size_t height(void) const { return m_height; }
-		/// Get the canvas pixels, as an array of `unsigned char`.
-		const component_t* pixels(void) const { return m_pixels.data(); }
+        /// Set the color of a pixel on the canvas.
+        void pixel(const Point2& point, const Color& color) {
+                auto x = point.x * m_block_size;
+                auto y = point.y * m_block_size;
+                auto x_offset = (y * m_width * image_depth) + (x * image_depth);
+                auto y_offset = 0;
 
-		/// Draw a horizontal line with `length` pixels on the canvas, starting
-		/// at a `p` location.
-		/*
-		* Example:
-		*
-		* ```
-		* (p.x, p.y), length = 15.
-		*  |
-		*  v
-		*  . . . . . . . . . . . . . . .
-		*  ```
-		*/
-		void hline(const Point2& p, size_t length, const Color&);
-		/// Draw a vertical line with `length` pixels on the canvas, starting at
-		/// a `p` location.
-		/*
-		* Example:
-		*
-		* ```
-		* (p.x, p.y), length = 6.
-		*  |
-		*  v
-		*  .
-		*  .
-		*  .
-		*  .
-		*  .
-		*  .
-		*  ```
-		*/
-		void vline(const Point2& p, size_t length, const Color&);
+                std::cout << "\n[COORD]" << std::endl;
+                std::cout << "X: " << x << std::endl;
+                std::cout << "Y: " << y << std::endl;
 
-	private:
-		size_t m_width;      //!< The image width in pixel units.
-		size_t m_height;     //!< The image height in pixel units.
-		short m_block_size;  //!< Cell size in pixels
-		vector<component_t>
-		m_pixels;  //!< The pixels, stored as 3 RGB components.
-	};
+                std::cout << "\n[RGBA]" << std::endl;
+                std::cout << "Color: " << (int)color.channels[0] << std::endl;
+                std::cout << "Color: " << (int)color.channels[1] << std::endl;
+                std::cout << "Color: " << (int)color.channels[2] << std::endl;
+                std::cout << "Alpha: " << 255 << std::endl;
+
+                std::cout << "\n[OFFSET]" << std::endl;
+                std::cout << "[x] offset: " << x_offset << std::endl << std::endl;
+
+                // largura * tamanho do bloco * profundidade (rgba)
+                while (y_offset < (int)(m_width * m_block_size * image_depth)) {
+                        // Preenche as colunas da linha
+                        for (int i = 0; i < m_block_size * image_depth; i += image_depth) {
+                                m_pixels[x_offset + y_offset + color.R + i] = color.channels[0];
+                                m_pixels[x_offset + y_offset + color.G + i] = color.channels[1];
+                                m_pixels[x_offset + y_offset + color.B + i] = color.channels[2];
+                                m_pixels[x_offset + y_offset + (color.B + 1) + i] = 255;
+                        }
+                        std::cout << "[y] offset: " << y_offset << std::endl;
+
+                        y_offset += m_width * image_depth; // Avança para a próxima linha do bloco
+                }
+                std::cout << std::endl;
+        }
+
+        /// Get the pixel color from the canvas.
+        Color pixel(const Point2&) const;  // #TODO
+
+        //=== Attribute accessors members.
+        /// Get the canvas width.
+        size_t width(void) const { return m_width; }
+
+        /// Get the canvas height.
+        size_t height(void) const { return m_height; }
+
+        /// Get the canvas pixels, as an array of `unsigned char`.
+        const component_t* pixels(void) const { return m_pixels.data(); }
+
+        /// Draw a horizontal line with `length` pixels on the canvas, starting
+        /// at a `p` location.
+        /*
+         * Example:
+         *
+         * ```
+         * (p.x, p.y), length = 15.
+         *  |
+         *  v
+         *  . . . . . . . . . . . . . . .
+         *  ```
+         */
+        void hline(const Point2& p, size_t length, const Color&);
+
+        /// Draw a vertical line with `length` pixels on the canvas, starting at
+        /// a `p` location.
+        /*
+         * Example:
+         *
+         * ```
+         * (p.x, p.y), length = 6.
+         *  |
+         *  v
+         *  .
+         *  .
+         *  .
+         *  .
+         *  .
+         *  .
+         *  ```
+         */
+        void vline(const Point2& p, size_t length, const Color&);
+
+       private:
+        size_t m_width;                //!< The image width in pixel units.
+        size_t m_height;               //!< The image height in pixel units.
+        short m_block_size;            //!< Cell size in pixels
+        vector<component_t> m_pixels;  //!< The pixels, stored as 3 RGB components.
+};
 }  // namespace life
 
 #endif  // CANVAS_H
